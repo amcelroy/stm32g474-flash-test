@@ -1,0 +1,51 @@
+{
+    /*
+     * Requires the Rust Language Server (RLS) and Cortex-Debug extensions
+     * https://marketplace.visualstudio.com/items?itemName=rust-lang.rust
+     * https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug
+     */
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "cwd": "${workspaceFolder}",
+            "executable": "./target/thumbv7em-none-eabihf/debug/stm32g474-flash-test",
+            "name": "Debug with JLink (debug)",
+            "request": "launch",
+            "type": "cortex-debug",
+            "preLaunchTask": "Cargo Build (debug)",
+            "svdFile": "./STM32G474.svd",
+            "device": "STM32G474RE",
+            "runToEntryPoint": "init",
+            "showDevDebugOutput": "both",
+            "preLaunchCommands": [
+                "monitor speed 1000" // JTAG Monitor Speed
+            ],
+            "serverArgs": [
+                "-speed",
+                "1000", // SWD speed
+                "-vd" // Verify download
+            ],
+            "servertype": "jlink"
+        },
+        {
+            "cwd": "${workspaceFolder}",
+            "executable": "./target/thumbv7em-none-eabihf/release/stm32g474-flash-test",
+            "name": "Debug with JLink (release)",
+            "request": "launch",
+            "type": "cortex-debug",
+            "preLaunchTask": "Cargo Build (release)",
+            "device": "STM32G474",
+            "runToEntryPoint": "init",
+            "showDevDebugOutput": "none",
+            "preLaunchCommands": [
+                "monitor speed 1000" // JTAG Monitor Speed
+            ],
+            "serverArgs": [
+                "-speed",
+                "1000", // SWD speed
+                "-vd" // Verify download
+            ],
+            "servertype": "jlink"
+        },
+    ]
+}
