@@ -34,9 +34,9 @@ mod app {
 
         // Sysclock is based on PLL_R
         pll_config.mux = stm32g4xx_hal::rcc::PLLSrc::HSI; // 16MHz
-        pll_config.n = stm32g4xx_hal::rcc::PllNMul::MUL_64;
-        pll_config.m = stm32g4xx_hal::rcc::PllMDiv::DIV_2; // f(vco) = 16MHz*64/2 = 512MHz
-        pll_config.r = Some(stm32g4xx_hal::rcc::PllRDiv::DIV_4); // f(sysclock) = 512MHz/4 = 128MHz
+        pll_config.n = stm32g4xx_hal::rcc::PllNMul::MUL_32;
+        pll_config.m = stm32g4xx_hal::rcc::PllMDiv::DIV_2; // f(vco) = 16MHz*32/2 = 256MHz
+        pll_config.r = Some(stm32g4xx_hal::rcc::PllRDiv::DIV_2); // f(sysclock) = 256MHz/2 = 128MHz
 
         // Note to future self: The AHB clock runs the timers, among other things.
         // Please refer to the Clock Tree manual to determine if it is worth
