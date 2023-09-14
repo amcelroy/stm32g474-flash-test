@@ -21,6 +21,18 @@ mod app {
     #[local]
     struct Local {}
 
+    fn compare_arrays(a: &[u8], b: &[u8]) -> bool {
+        if a.len() != b.len() {
+            return false;
+        }
+        for i in 0..a.len() {
+            if a[i] != b[i] {
+                return false;
+            }
+        }
+        true
+    }
+
     #[init]
     fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
         // let dp = Peripherals::take().unwrap();
@@ -55,16 +67,83 @@ mod app {
 
         let mut rcc = rcc.freeze(clock_config);
 
-        // *** FLASH Memory ***
-        let mut data = [0xBE, 0xEF, 0xCA, 0xFE];
-        let mut flash = dp.FLASH.constrain();
-        let mut flash_writer = flash.writer(FlashSize::Sz128K);
-        let write_results = flash_writer.write(0x1FC00 as u32, &data);
-        write_results.unwrap();
-        let mut memory_read_results = flash_writer.read(0x1FC00 as u32, data.len());
-        let memory_bytes = memory_read_results.unwrap();
+        unsafe {
+            let mut flash = &(*stm32g4xx_hal::stm32::FLASH::ptr());
+            flash.acr.modify(|_, w| {
+                w.latency().bits(0b1000) // 8 wait states
+            });
+        }
 
-        //adc.start_conversion();
+        // *** FLASH Memory ***
+        //let mut data = [0xBE, 0xEF, 0xCA, 0xFE];
+        let one_byte = [0x12 as u8];
+        let two_bytes = [0xAB, 0xCD as u8];
+        let three_bytes = [0x12, 0x34, 0x56 as u8];
+        let four_bytes = [0xAB, 0xCD, 0xEF, 0xBA as u8];
+        let eight_bytes = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 as u8];
+        let sixteen_bytes = [
+            0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0, 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC,
+            0xDE, 0xF0 as u8,
+        ];
+        let mut flash = dp.FLASH.constrain();
+        let mut flash_writer = flash.writer::<2048>(FlashSize::Sz256K);
+
+        flash_writer.erase(0x1FC00, 128).unwrap(); // Erase entire page
+
+        for i in 0..6 {
+            match i {
+                0 => flash_writer.write(0x1FC00 + i * 16, &one_byte).unwrap(),
+                1 => flash_writer.write(0x1FC00 + i * 16, &two_bytes).unwrap(),
+                2 => flash_writer.write(0x1FC00 + i * 16, &three_bytes).unwrap(),
+                3 => flash_writer.write(0x1FC00 + i * 16, &four_bytes).unwrap(),
+                4 => flash_writer.write(0x1FC00 + i * 16, &eight_bytes).unwrap(),
+                5 => flash_writer
+                    .write(0x1FC00 + i * 16, &sixteen_bytes)
+                    .unwrap(),
+                _ => (),
+            }
+        }
+
+        for i in 0..6 {
+            match i {
+                0 => {
+                    let bytes = flash_writer.read(0x1FC00 as u32, one_byte.len()).unwrap();
+                    assert!(compare_arrays(&bytes, &one_byte));
+                }
+                1 => {
+                    let bytes = flash_writer
+                        .read(0x1FC00 + i * 16, two_bytes.len())
+                        .unwrap();
+                    assert!(compare_arrays(&bytes, &two_bytes));
+                }
+                2 => {
+                    let bytes = flash_writer
+                        .read(0x1FC00 + i * 16, three_bytes.len())
+                        .unwrap();
+                    assert!(compare_arrays(&bytes, &three_bytes));
+                }
+                3 => {
+                    let bytes = flash_writer
+                        .read(0x1FC00 + i * 16, four_bytes.len())
+                        .unwrap();
+                    assert!(compare_arrays(&bytes, &four_bytes));
+                }
+                4 => {
+                    let bytes = flash_writer
+                        .read(0x1FC00 + i * 16, eight_bytes.len())
+                        .unwrap();
+                    assert!(compare_arrays(&bytes, &eight_bytes));
+                }
+                5 => {
+                    let bytes = flash_writer
+                        .read(0x1FC00 + i * 16, sixteen_bytes.len())
+                        .unwrap();
+                    assert!(compare_arrays(&bytes, &sixteen_bytes));
+                }
+                _ => (),
+            }
+        }
+
         (
             // Initialization of shared resources
             Shared {},
